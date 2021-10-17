@@ -53,23 +53,30 @@ instacart %>% dim()
 instacart %>% names() 
 instacart %>% head()
 
+```
+
+
+```{r}
 Arranged_aisles <- instacart %>% 
   group_by(aisle) %>% 
   summarise(n = n()) %>% 
   arrange(desc(n))
 
+Arranged_aisles
+```
+
+There are 134 aisles. Fresh vegetables aisles are the most items ordered from.
+
+
+```{r}
 Arranged_aisles %>% 
   filter(n>10000) %>%
   ggplot(aes(x = reorder(aisle, n), y = n)) + 
-  geom_point() + 
+  geom_bar(stat = "identity") + 
   coord_flip()
 
 
 ```
-
-
-
-1. There are 134 aisles. Fresh vegetables aisles are the most items ordered from.
 
 
 
@@ -120,11 +127,11 @@ instacart %>%
 devtools::install_github("p8105/p8105.datasets")
 library(p8105.datasets)
 
-data("brfss_smart2010")
+data("brfss_smart2010") 
 ```
 
 ```{r}
-brfss <- brfss_smart2010
+brfss <- brfss_smart2010 
 
 
 brfss_clean <- brfss %>% 
@@ -132,8 +139,7 @@ brfss_clean <- brfss %>%
   filter(topic == "Overall Health") %>%
   filter(response == "Excellent" | response == "Very good" | 
            response == "Good" | response == "Fair" | response == "Poor") %>%
-  mutate(response = as.factor(response)) %>% 
-  mutate(response = response %>% fct_relevel("Poor", "Fair", "Good", "Very good", "Excellent"))
+  mutate(response = as.factor(response) %>% fct_relevel("Poor", "Fair", "Good", "Very good", "Excellent")) 
 
 ```
 
@@ -153,12 +159,14 @@ brfss_clean %>%
 ```{r}
 brfss_clean %>% 
   filter(response == "Excellent") %>% 
-  select(year, locationabbr, data_value) %>% 
   group_by(year, locationabbr) %>%
-  summarise(mean_data_value = mean(data_value)) %>%
+  summarise(mean_data_value = mean(data_value, na.rm=T)) %>%
   ggplot(aes(year, mean_data_value, color=locationabbr)) + 
   geom_point(size=0.2) + 
-  geom_line(aes(group=locationabbr, alpha = 0.2))
+  geom_line(aes(group=locationabbr, alpha = 0.2)) +
+  viridis::scale_color_viridis(name = "Location", discrete =TRUE) +
+  theme(legend.position = "right")
+
 ```
 ```{r}
 library(ggridges)
@@ -175,16 +183,34 @@ accel <- read.csv("~/Downloads/accel_data.csv")
 clean_accel <- accel %>% 
   janitor::clean_names() %>% 
   pivot_longer(activity_1:activity_1440, 
-               names_to = "minutes_in_a_day", values_to = "activity_count") %>%
+               names_to = "minutes_in_a_day", values_to = "activity_count", names_prefix =  "activity_") %>%
   mutate(day = day %>% 
-           fct_relevel("Monday", "Tuesday", "Wednesday", 
-                       "Thursday","Friday", "Saturday", "Sunday")) %>% 
+           fct_relevel("Sunday", "Monday", "Tuesday", "Wednesday", 
+                       "Thursday","Friday", "Saturday")) %>% 
   mutate(weekday_vs_weekend = ifelse(day %in% c("Monday", "Tuesday", "Wednesday", 
-                       "Thursday","Friday"), "weekday","weekend")) %>% view()
+                       "Thursday","Friday"), "weekday","weekend")) %>% 
+  mutate_if(is.double, as.integer) %>%
+  mutate(minutes_in_a_day = as.integer(minutes_in_a_day))
   
-  #pivot_wider(names_from = day, values_from = "activity_count") %>% 
-  #relocate(Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday) %>% view
+```
 
+
+```{r}
+accel_row <- accel %>% nrow()
+accel_col <- accel %>% ncol()
+accel_names <- accel %>% names()
+
+
+clean_accel_row <- clean_accel %>% nrow()
+clean_accel_col <- clean_accel %>% ncol()
+clean_accel_names <- clean_accel %>% names()
+
+```
+Originally, the dimension of the pols_month_data was **`r accel_row` x**  **`r accel_col`** and there are **`r accel_col`** variables. This represents one person's activity data for **`r accel_row` x** days. After tidying and wrangling the data, the dimension is **`r clean_accel_row` x**  **`r clean_accel_col`** and **`r clean_accel_col`** variables: *`r clean_accel_names`.* There are **`r clean_accel_row`** number of observations,this is the total of 1440 minutes of each day's combined data (**1440x35 =** **`r clean_accel_row`**). 
+
+
+#part 2
+```{r}
 clean_accel %>% 
   group_by(day) %>% 
   summarize(total = sum(activity_count)) %>% 
@@ -192,11 +218,16 @@ clean_accel %>%
 
 ```
 
+#Part 3
 ```{r}
 clean_accel %>%
   group_by(day, minutes_in_a_day) %>%
-  ggplot(aes(activity_type, activity_count, color = day)) +
-  geom_point() 
+  ggplot(aes(minutes_in_a_day, activity_count, color = day)) +
+  geom_point() +
+  scale_x_continuous(
+    breaks = c(0, 180, 360, 540, 720, 900, 1080, 1260, 1440),
+    labels = c("0hr", "3hr", "6hr", "9hr", "12hr", "15hr", "18hr", "21hr", "24hr")
+  )
 
 ```
 
