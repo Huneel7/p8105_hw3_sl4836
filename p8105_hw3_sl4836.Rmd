@@ -36,15 +36,18 @@ Arranged_aisles <- instacart %>%
 
 Arranged_aisles %>% 
   filter(n>10000) %>%
-  ggplot(aes(x = reorder(aisle, n), y =n)) + 
+  ggplot(aes(x = reorder(aisle, n), y = n)) + 
   geom_point() + 
   coord_flip()
 
 
 ```
+
+
+
 1. There are 134 aisles. Fresh vegetables aisles are the most items ordered from.
 
-2.
+
 
 ```{r}
 options(knitr.kable.NA = 0)
@@ -86,24 +89,62 @@ instacart %>%
   pivot_wider(names_from = order_dow, values_from = mean_hour) %>%
   knitr::kable(align = "c", format = "pipe")
   
+```
+
+#Problem 2
+```{r}
+devtools::install_github("p8105/p8105.datasets")
+library(p8105.datasets)
+
+data("brfss_smart2010")
+```
+
+```{r}
+brfss <- brfss_smart2010
+
+
+brfss_clean <- brfss %>% 
+  janitor::clean_names() %>% 
+  filter(topic == "Overall Health") %>%
+  filter(response == "Excellent" | response == "Very good" | 
+           response == "Good" | response == "Fair" | response == "Poor") %>%
+  mutate(response = as.factor(response)) %>% 
+  mutate(response = response %>% fct_relevel("Poor", "Fair", "Good", "Very good", "Excellent"))
 
 ```
 
 ```{r}
+brfss_clean %>% 
+  filter(year == 2002) %>% 
+  group_by(locationabbr) %>% 
+  summarise(n = n()) %>% 
+  filter(n>6)
 
+brfss_clean %>% 
+  filter(year == 2010) %>% 
+  group_by(locationabbr) %>% 
+  summarise(n = n()) %>% 
+  filter(n>6)
 ```
-
 ```{r}
-
+brfss_clean %>% 
+  filter(response == "Excellent") %>% 
+  select(year, locationabbr, data_value) %>% 
+  group_by(year, locationabbr) %>%
+  summarise(mean_data_value = mean(data_value)) %>%
+  ggplot(aes(year, mean_data_value, color=locationabbr)) + 
+  geom_point(size=0.2) + 
+  geom_line(aes(group=locationabbr, alpha = 0.2))
 ```
-
-
-
 ```{r}
+library(ggridges)
 
+brfss_clean %>% filter(year == 2006 | year == 2010 ) %>% filter(locationabbr == "NY") %>% 
+  ggplot(aes(data_value,response)) +
+  geom_density_ridges(scale=.85) +
+  facet_wrap(.~year)
 ```
 
-```{r}
 
-```
+
 
