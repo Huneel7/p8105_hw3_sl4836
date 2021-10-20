@@ -8,9 +8,11 @@ output: github_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(readxl)
+library(dplyr)
 ```
 
-```{r}
+#ggplot theme template from Dr.Goldsmith github
+```{r, warning=FALSE, message=FALSE}
 knitr::opts_chunk$set(
   fig.width = 6,
   fig.asp = .6,
@@ -31,7 +33,7 @@ scale_fill_discrete = scale_fill_viridis_d
 
 
 #Problem 0
-```{r}
+```{r, warning=FALSE, message=FALSE}
 getwd()
 
 dir.create(file.path(getwd(), "hw3_data_file"), recursive = TRUE)
@@ -40,47 +42,64 @@ list.files()
 ```
 
 
-#Problem 1
-```{r}
+#Problem 1_Data_Summary
+```{r, warning=FALSE, message=FALSE}
 library(p8105.datasets)
 data("instacart")
 ```
 
-```{r}
-instacart <- instacart
+```{r, warning=FALSE, message=FALSE}
+instacart <- instacart 
 
-instacart %>% dim()
-instacart %>% names() 
-instacart %>% head()
+instacart %>% head
 
+instacart_names <- names(instacart)
+instacart_nrow <- nrow(instacart)
+instacart_ncol <- ncol(instacart)
 ```
+The size of the dataset is **`r instacart_nrow` x**  **`r instacart_ncol`** and **`r instacart_ncol`** variables: *`r instacart_names`.* There are **`r instacart_nrow`** number of observations without missing data. Among these, there are 4 character variables and 11 numeric variables. 
 
 
-```{r}
-Arranged_aisles <- instacart %>% 
+#Problem 1_(a)
+```{r, warning=FALSE, message=FALSE}
+Arranged_aisles <- 
+  instacart %>% 
   group_by(aisle) %>% 
   summarise(n = n()) %>% 
   arrange(desc(n))
 
-Arranged_aisles
+number_aisles <- 
+  nrow(Arranged_aisles)
+
+top_item <- 
+  Arranged_aisles %>% 
+  pull(aisle) %>%
+  first()
 ```
 
-There are 134 aisles. Fresh vegetables aisles are the most items ordered from.
-
+There are **`r number_aisles`** aisles. **`r top_item`** are the most items ordered from aisles.
 
 ```{r}
+
+```
+
+#Problem 1_(b)_Making a plot that shows the number of items ordered in each aisle
+```{r, warning=FALSE, message=FALSE}
 Arranged_aisles %>% 
   filter(n>10000) %>%
   ggplot(aes(x = reorder(aisle, n), y = n)) + 
   geom_bar(stat = "identity") + 
-  coord_flip()
+  coord_flip() +
+  labs(y = "Number of Items", x = "Items") +
+  ggtitle("The Number of Items Ordered in Each Aisle") +
+  theme(plot.title = element_text(hjust = 0.3))
 
 
 ```
 
 
-
-```{r}
+#Problem 1_(c)_making a table showing the three most popular items in each aisles
+```{r, warning=FALSE, message=FALSE}
 options(knitr.kable.NA = 0)
 
 baking_top3 <- instacart %>% 
@@ -107,77 +126,102 @@ packaged_vege_fruit_top3 <- instacart %>%
   slice(1:3) %>%
   mutate(aisle = "packaged vegetables fruits")
 
-bind_rows(baking_top3 ,dog_food_top3, packaged_vege_fruit_top3) %>%
-  pivot_wider(names_from = product_name, values_from = n)  %>%
-  knitr::kable(align = "c", format = "pipe")
+bind_rows(baking_top3 ,
+          dog_food_top3, 
+          packaged_vege_fruit_top3) %>% 
+  mutate(aisle = str_to_title(aisle)) %>%
+  rename(Aisle = aisle) %>%
+  pivot_wider(names_from = product_name, 
+              values_from = n)  %>%
+  knitr::kable(align = "c", format = "pipe", 
+               caption = "**Table 1: Three Most Popular Items 
+               with their counts in Each Aisles**")
 ```
 
-```{r}
+#Problem 1_(d)_Making a table showing the mean hour of the day
+```{r, warning=FALSE, message=FALSE}
 instacart %>% 
   filter(product_name == "Pink Lady Apples" |product_name == "Coffee Ice Cream") %>%
   group_by(product_name, order_dow) %>% 
   summarise(mean_hour = mean(order_hour_of_day)) %>%
+  rename(Product_Name = product_name) %>%
   pivot_wider(names_from = order_dow, values_from = mean_hour) %>%
-  knitr::kable(align = "c", format = "pipe")
+  knitr::kable(align = "c", format = "pipe",
+               caption = "**The Mean Hour of the Day at which
+               Each Item is Ordered on Each Day**"
+               )
   
 ```
 
-#Problem 2
-```{r}
+#Problem 2_Data Import
+```{r, warning=FALSE, message=FALSE}
 devtools::install_github("p8105/p8105.datasets")
 library(p8105.datasets)
 
 data("brfss_smart2010") 
 ```
 
-```{r}
+#Problem 2_(a)_Data_Cleaning
+```{r, warning=FALSE, message=FALSE}
 brfss <- brfss_smart2010 
 
 
 brfss_clean <- brfss %>% 
   janitor::clean_names() %>% 
   filter(topic == "Overall Health") %>%
-  filter(response == "Excellent" | response == "Very good" | 
-           response == "Good" | response == "Fair" | response == "Poor") %>%
-  mutate(response = as.factor(response) %>% fct_relevel("Poor", "Fair", "Good", "Very good", "Excellent")) 
+  filter(response %in% c("Excellent", "Very good",
+                         "Good","Fair", "Poor" )) %>%
+  mutate(response = as.factor(response) %>% 
+           fct_relevel("Poor", "Fair", "Good", "Very good",
+                       "Excellent")) 
 
 ```
 
-```{r}
+#Problem 2_(b)_Showing States observed at 7 or more observations
+```{r, warning=FALSE, message=FALSE}
 brfss_clean %>% 
   filter(year == 2002) %>% 
   group_by(locationabbr) %>% 
-  summarise(n = n()) %>% 
-  filter(n>6)
+  summarise(n = n_distinct(locationdesc)) %>% 
+  filter(n >= 7) %>%
+  arrange(n)
 
 brfss_clean %>% 
   filter(year == 2010) %>% 
   group_by(locationabbr) %>% 
-  summarise(n = n()) %>% 
-  filter(n>6)
+  summarise(n = n_distinct(locationdesc)) %>% 
+  filter(n >= 7) %>%
+  arrange(n)
 ```
-```{r}
+```{r, warning=FALSE, message=FALSE}
 brfss_clean %>% 
-  filter(response == "Excellent") %>% 
-  group_by(year, locationabbr) %>%
+  filter(response == "Excellent") %>%
+  rename(States = locationabbr) %>%
+  group_by(year, States) %>%
   summarise(mean_data_value = mean(data_value, na.rm=T)) %>%
-  ggplot(aes(year, mean_data_value, color=locationabbr)) + 
+  ggplot(aes(year, mean_data_value, color=States)) + 
   geom_point(size=0.2) + 
-  geom_line(aes(group=locationabbr, alpha = 0.2)) +
-  viridis::scale_color_viridis(name = "Location", discrete =TRUE) +
-  theme(legend.position = "right")
+  geom_line(aes(group=States, alpha = 0.5)) +
+  theme(legend.position = "right", legend.title =
+          element_text(colour="black", size=10, face="bold")) 
+ 
 
 ```
-```{r}
+```{r, warning=FALSE, message=FALSE}
 library(ggridges)
 
-brfss_clean %>% filter(year == 2006 | year == 2010 ) %>% filter(locationabbr == "NY") %>% 
-  ggplot(aes(data_value,response)) +
-  geom_density_ridges(scale=.85) +
-  facet_wrap(.~year)
+brfss_clean %>% 
+  filter(year == 2006 | year == 2010, locationabbr == "NY") %>%
+  group_by(locationdesc) %>%
+  ggplot(aes(response, data_value, color = response)) +
+  geom_boxplot() +
+  facet_wrap(.~year) + 
+  ggtitle("Distribution of data_value for responses in NY State") +
+  labs(x = "Levels of Response") +
+  scale_color_discrete(name="Levels of Response")
 ```
-#Problem 3
-```{r}
+#Problem 3_Loading, Tidying, and Wrangling Data
+```{r, warning=FALSE, message=FALSE}
 accel <- read.csv("~/Downloads/accel_data.csv") 
 
 clean_accel <- accel %>% 
@@ -185,17 +229,15 @@ clean_accel <- accel %>%
   pivot_longer(activity_1:activity_1440, 
                names_to = "minutes_in_a_day", values_to = "activity_count", names_prefix =  "activity_") %>%
   mutate(day = day %>% 
-           fct_relevel("Sunday", "Monday", "Tuesday", "Wednesday", 
-                       "Thursday","Friday", "Saturday")) %>% 
-  mutate(weekday_vs_weekend = ifelse(day %in% c("Monday", "Tuesday", "Wednesday", 
-                       "Thursday","Friday"), "weekday","weekend")) %>% 
+           fct_relevel("Sunday", "Monday", "Tuesday", "Wednesday","Thursday","Friday", "Saturday")) %>% 
+  mutate(weekday_vs_weekend = ifelse(day %in% c("Monday", "Tuesday", "Wednesday", "Thursday","Friday"), "weekday","weekend")) %>% 
   mutate_if(is.double, as.integer) %>%
   mutate(minutes_in_a_day = as.integer(minutes_in_a_day))
   
 ```
 
-
-```{r}
+#Problem 3_Describing the resulting dataset using in-line
+```{r, warning=FALSE, message=FALSE}
 accel_row <- accel %>% nrow()
 accel_col <- accel %>% ncol()
 accel_names <- accel %>% names()
@@ -209,17 +251,19 @@ clean_accel_names <- clean_accel %>% names()
 Originally, the dimension of the pols_month_data was **`r accel_row` x**  **`r accel_col`** and there are **`r accel_col`** variables. This represents one person's activity data for **`r accel_row` x** days. After tidying and wrangling the data, the dimension is **`r clean_accel_row` x**  **`r clean_accel_col`** and **`r clean_accel_col`** variables: *`r clean_accel_names`.* There are **`r clean_accel_row`** number of observations,this is the total of 1440 minutes of each day's combined data (**1440x35 =** **`r clean_accel_row`**). 
 
 
-#part 2
-```{r}
+#Problem 3_(b)_Creating a table that shows aggregation of a total activity for each day
+```{r, warning=FALSE, message=FALSE}
 clean_accel %>% 
   group_by(day) %>% 
   summarize(total = sum(activity_count)) %>% 
-  knitr::kable(align = "c", format = "pipe")
+  rename(Day = day, Total = total) %>%
+  knitr::kable(align = "c", format = "pipe", caption = "Table 1:
+               Aggregation of a Total Activity across minutes for each day")
 
 ```
 
 #Part 3
-```{r}
+```{r, warning=FALSE, message=FALSE}
 clean_accel %>%
   group_by(day, minutes_in_a_day) %>%
   ggplot(aes(minutes_in_a_day, activity_count, color = day)) +
@@ -230,12 +274,6 @@ clean_accel %>%
   )
 
 ```
-
-```{r}
-
-```
-
-
 
 
 
