@@ -198,12 +198,13 @@ brfss_clean %>%
   filter(response == "Excellent") %>%
   rename(States = locationabbr) %>%
   group_by(year, States) %>%
-  summarise(mean_data_value = mean(data_value, na.rm=T)) %>%
+  summarise(mean_data_value = mean(data_value, na.rm=T)) %>% 
   ggplot(aes(year, mean_data_value, color=States)) + 
   geom_point(size=0.2) + 
   geom_line(aes(group=States, alpha = 0.5)) +
   theme(legend.position = "right", legend.title =
-          element_text(colour="black", size=10, face="bold")) 
+          element_text(colour="black", size=10, face="bold"), 
+        legend.key.size = unit(0.5, 'cm')) 
  
 
 ```
@@ -217,12 +218,12 @@ brfss_clean %>%
   geom_boxplot() +
   facet_wrap(.~year) + 
   ggtitle("Distribution of data_value for responses in NY State") +
-  labs(x = "Levels of Response") +
-  scale_color_discrete(name="Levels of Response")
+  labs(x = "Levels of Response", y = "Data_Value") +
+  scale_color_discrete(name="Levels of Response:")
 ```
 #Problem 3_Loading, Tidying, and Wrangling Data
 ```{r, warning=FALSE, message=FALSE}
-accel <- read.csv("~/Downloads/accel_data.csv") 
+accel <- read.csv("./hw3_data_file/accel_data.csv") 
 
 clean_accel <- accel %>% 
   janitor::clean_names() %>% 
@@ -257,23 +258,31 @@ clean_accel %>%
   group_by(day) %>% 
   summarize(total = sum(activity_count)) %>% 
   rename(Day = day, Total = total) %>%
-  knitr::kable(align = "c", format = "pipe", caption = "Table 1:
-               Aggregation of a Total Activity across minutes for each day")
+  knitr::kable(align = "c", format = "pipe", caption = "**Table 1:
+               Aggregation of a Total Activity across Minutes for Each Day**")
 
 ```
+According to the Table 1, it's hard to say there are apparent trends across days. However, one interesting observation is that the total activity aggregation on Saturday is far lower than any other days as one can expect people normally would like to rest on Saturday. It is also to be observed the total activity on Friday has the highest aggregation. 
+
+
+
 
 #Part 3
 ```{r, warning=FALSE, message=FALSE}
 clean_accel %>%
   group_by(day, minutes_in_a_day) %>%
-  ggplot(aes(minutes_in_a_day, activity_count, color = day)) +
+  rename(Day = day) %>%
+  ggplot(aes(minutes_in_a_day, activity_count, color = Day)) +
   geom_point() +
   scale_x_continuous(
     breaks = c(0, 180, 360, 540, 720, 900, 1080, 1260, 1440),
-    labels = c("0hr", "3hr", "6hr", "9hr", "12hr", "15hr", "18hr", "21hr", "24hr")
-  )
+    labels = c("0hr", "3hr", "6hr", "9hr", "12hr", "15hr", "18hr", "21hr", "24hr")) + 
+  labs(x = "Hours", y="Activity Count") +
+  ggtitle("24-hour Activity Time Courses for Each Day with one-minute interval") + 
+  theme(plot.title = element_text(size=12))
 
 ```
+Between 0hr (12am) to 6hr (6am), it is to be observed that the activity count of a 63 year-old male is the lowest across days as one can expect people normally sleep during those times. Around 7hr (7am), his activity count is relatively high on some Thursdays. Around 9hr (9am), his activity count is quite high on some Fridays. Around 12hr (12pm), his activity count is high on many Sundays. Between 16hr (4pm) and 17hr (5pm), his activity count is relatively high on a decent number of weekends. Between 20hr (8pm) and 22hr(10pm), his activity count is high across many days, especially on Friday followed by Saturday, Wednesday, Monday. 
 
 
 
